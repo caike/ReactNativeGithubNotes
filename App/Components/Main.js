@@ -1,4 +1,6 @@
 var React = require('react-native');
+var api = require('../Utils/api');
+var Dashboard = require('./Dashboard');
 
 var {
   View,
@@ -58,7 +60,7 @@ class Main extends React.Component {
   constructor(props){
     super(props);
     this.state = {
-      username: '',
+      userName: '',
       isLoading: false,
       error: false
     }
@@ -68,24 +70,56 @@ class Main extends React.Component {
   }
 
   handleChange(e){
-    this.setState({ username: e.nativeEvent.text });
+    this.setState({ userName: e.nativeEvent.text });
   }
 
   handleSubmit(e){
     // update indicatorIOS spinner
-    this.setState({ isLoading: true });
-    console.log('SUBMIT', this.state.username);
-    // fetch data from GitHub
-    // reroute to next component with GitHub info
+    this.setState({
+      isLoading: true
+    });
+
+    console.log('SUBMIT', this.state.userName);
+
+    api.getBio(this.state.userName).
+      then((bio) => {
+
+        if(bio.message === 'Not Found'){
+
+          console.log('OMG NOT FOUND');
+          this.setState({
+            error: "User not found",
+            isLoading: false
+          });
+
+        }else{
+
+          console.log('OMG FOUND!');
+          this.props.navigator.push({
+            title: bio.name || 'Select an Option',
+            component: Dashboard,
+            passProps: { userInfo: bio }
+          });
+          this.setState({
+            isLoading: false,
+            error: false,
+            userName: ''
+          });
+
+        }
+    });
   }
 
   render(){
+
+    var showError = ( this.state.error ? <Text>Error!</Text> : <View></View> );;
+
     return (
       <View style={styles.mainContainer}>
       <Text style={styles.title}>Search for a GitHub user</Text>
         <TextInput
           style={styles.searchInput}
-          value={this.state.username}
+          value={this.state.userName}
           onChange={this.handleChange}
         />
         <TouchableHighlight
@@ -94,6 +128,12 @@ class Main extends React.Component {
           underlayColor="white" >
           <Text style={styles.buttonText}>SEARCH</Text>
         </TouchableHighlight>
+        <ActivityIndicatorIOS
+          animating={this.state.isLoading}
+          color="#111"
+          size="large"
+        />
+        {showError}
       </View>
     );
   }
